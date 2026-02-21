@@ -355,13 +355,13 @@
         }
     }
 
-    // ==========================================
-    // 🌟 [2단계] 공유 호출 및 시트 전송
+// ==========================================
+    // 🌟 [2단계] 공유 호출 및 시트 전송 (삼성 인터넷 튕김 완벽 대비)
     // ==========================================
     async function executeShareAndSend() {
         const btn = document.querySelector('.btn-send');
         
-        // 카톡 공유
+        // [A] 카톡 공유 시도
         if (navigator.canShare && navigator.canShare({ files: preparedFilesToShare })) {
             try {
                 await navigator.share({
@@ -370,10 +370,21 @@
                     text: `현장명: ${pendingData.site}\n동/호수: ${pendingData.dong}동 ${pendingData.ho}호\n작업완료 보고서 및 완료확인서 첨부합니다.`
                 });
             } catch (err) {
-                console.log("사용자가 공유창을 닫았습니다.");
+                // 사용자가 엑스표(취소)를 누른 경우(AbortError)가 아니라면, 
+                // 삼성 인터넷 등 브라우저가 공유창을 튕겨낸 것이므로 강제 다운로드 실행!
+                if (err.name !== 'AbortError') {
+                    alert("⚠️ 삼성 인터넷 등의 브라우저 정책으로 카톡 자동 공유가 막혔습니다.\n대신 기기(다운로드 폴더)에 PDF를 안전하게 직접 저장합니다.");
+                    const pdfUrl = URL.createObjectURL(preparedFilesToShare[0]);
+                    const a = document.createElement('a');
+                    a.href = pdfUrl;
+                    a.download = preparedFilesToShare[0].name;
+                    a.click();
+                    URL.revokeObjectURL(pdfUrl);
+                }
             }
         } else {
-            alert("현재 기기가 자동 공유를 지원하지 않아 PDF가 일반 다운로드됩니다.");
+            // 애초에 공유 기능을 지원하지 않는 PC 등
+            alert("자동 공유를 지원하지 않는 기기이므로 PDF가 다운로드됩니다.");
             const pdfUrl = URL.createObjectURL(preparedFilesToShare[0]);
             const a = document.createElement('a');
             a.href = pdfUrl;
@@ -382,7 +393,7 @@
             URL.revokeObjectURL(pdfUrl);
         }
 
-        // 구글 시트 전송
+        // [B] 구글 시트 백업 전송
         btn.innerText = "⏳ 3단계: 구글 시트 전송 중...";
         btn.disabled = true;
         btn.style.background = "#e67e22";
@@ -401,17 +412,18 @@
             });
 
             if(response.ok) {
-                alert("✅ 공유 및 구글 시트 백업이 모두 완료되었습니다!");
+                alert("✅ 모든 작업(PDF 생성 및 시트 백업)이 완료되었습니다!");
                 savedList = []; 
                 updateTable();
                 clearForm();    
             } else { 
-                alert("⚠️ 카톡 공유는 완료되었으나 구글 시트 전송에 실패했습니다."); 
+                alert("⚠️ PDF 처리는 완료되었으나 구글 시트 전송에 실패했습니다."); 
             }
         } catch(e) { 
             alert("❌ 통신 오류: 인터넷 연결을 확인해주세요."); 
         }
         
+        // 버튼을 원래 상태로 복구
         resetSendButton();
     }
 
@@ -467,3 +479,4 @@
 </script>
 </body>
 </html>
+
