@@ -217,35 +217,39 @@
         document.getElementById('count').innerText = savedList.length;
     }
 
-    // 구글 시트 전송 (날짜 포함) 🌟
+// [6] 구글 시트 전송 (URL 고정 및 오류 수정 버전) 🌟
     async function sendSheetDB() {
-        // 💡 주의: 여기에 본인의 API 주소를 직접 따옴표 안에 넣으셔도 됩니다.
-        let url = document.getElementById('https://sheetdb.io/api/v1/espz77lzn6sii').value || localStorage.getItem('mySheetDbUrl');
+        // 🌟 아래 변수에 본인의 API 주소를 정확히 입력하세요.
+        // 현재 코드에 적혀있던 주소를 제가 넣어두었습니다.
+        const MY_API_URL = "https://sheetdb.io/api/v1/espz77lzn6sii"; 
 
-        if(!url) {
-            url = prompt("SheetDB API URL을 입력하세요:");
-            if(!url) return;
-            document.getElementById('api-url').value = url;
-            localStorage.setItem('mySheetDbUrl', url);
+        if(savedList.length === 0) {
+            return alert("전송할 데이터가 없습니다. 먼저 [임시 저장]을 눌러 목록을 채워주세요.");
         }
-
-        if(savedList.length === 0) return alert("전송할 데이터가 없습니다.");
         
         const btn = document.querySelector('.btn-send');
         btn.innerText = "⏳ 전송 중...";
         btn.disabled = true;
 
         try {
-            const response = await fetch(url, {
+            const response = await fetch(MY_API_URL, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ data: savedList }) 
             });
+            
             if(response.ok) {
-                alert("✅ 구글 시트 전송 성공!");
-                savedList = []; updateTable();
-            } else { alert("❌ 전송 실패 (헤더 불일치 등)"); }
-        } catch(e) { alert("❌ 오류 발생"); }
+                alert("✅ 구글 시트로 데이터가 안전하게 전송되었습니다!");
+                savedList = []; // 성공 시 목록 초기화
+                updateTable();
+            } else { 
+                const result = await response.json();
+                alert("❌ 전송 실패: 구글 시트의 1행(헤더) 이름이 아래와 일치하는지 확인하세요.\n(date, no, site, dong, ho, loc, work, type, contractor, desc)\n\n상세오류: " + JSON.stringify(result)); 
+            }
+        } catch(e) { 
+            alert("❌ 통신 오류: 인터넷 연결을 확인하거나 API 주소가 정확한지 확인해 주세요."); 
+        }
+        
         btn.innerText = "구글 시트 최종 전송";
         btn.disabled = false;
     }
@@ -274,3 +278,4 @@
 </script>
 </body>
 </html>
+
