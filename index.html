@@ -18,8 +18,6 @@
         
         .grid-input { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         #today-date { grid-column: span 2; background-color: #fff9e6; border: 1px solid #ffd32a; font-weight: bold; color: #d35400; }
-        
-        /* 🌟 클라우드 DB용 드롭다운 스타일 */
         #db-sheet { grid-column: span 2; background-color: var(--highlight); border: 2px solid var(--accent); font-weight: bold; font-size: 15px; color: var(--primary); }
         #no { grid-column: span 2; border: 2px solid var(--accent); font-weight: bold; font-size: 16px; text-align: center; }
         #site, #desc { grid-column: span 2; }
@@ -43,22 +41,39 @@
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f9fa; }
 
-        #pdf-template { display: none; padding: 0 30px 15px 30px; background: white; width: 750px; font-family: 'Malgun Gothic', sans-serif; box-sizing: border-box; }
-        #pdf-template h1 { text-align: center; color: #1e272e; margin: 5px 0 10px 0; font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-        #pdf-template table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        #pdf-template th, #pdf-template td { border: 1px solid #333; padding: 8px; text-align: center; font-size: 14px; }
+        /* 📄 완벽한 A4 핏(Fit)을 위한 PDF 전용 양식 수정 */
+        #pdf-template { 
+            display: none; 
+            width: 794px; /* A4 픽셀 너비 */
+            height: 1123px; /* A4 픽셀 높이 */
+            padding: 40px; /* 문서 안쪽 여백 */
+            background: white; 
+            font-family: 'Malgun Gothic', sans-serif; 
+            box-sizing: border-box; 
+        }
+        #pdf-template h1 { text-align: center; color: #1e272e; margin: 0 0 20px 0; font-size: 26px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        #pdf-template table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        #pdf-template th, #pdf-template td { border: 1px solid #333; padding: 10px; text-align: center; font-size: 15px; }
         #pdf-template .label { background: #f2f2f2; font-weight: bold; width: 20%; }
-        .pdf-photo-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
-        .pdf-photo-item { width: 100%; text-align: center; }
-        .pdf-photo-item p { margin: 5px 0; font-weight: bold; font-size: 15px; }
-        .pdf-photo-item img { width: 55%; height: auto; aspect-ratio: 4 / 3; object-fit: contain; border: 1px solid #ddd; background: #fafafa; margin: 0 auto; display: block; }
+        
+        /* 사진이 남은 A4 공간을 완벽하게 2등분하여 채우도록 설정 */
+        .pdf-photo-grid { display: flex; flex-direction: column; gap: 15px; height: 680px; justify-content: center; }
+        .pdf-photo-item { width: 100%; height: 48%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+        .pdf-photo-item p { margin: 0 0 5px 0; font-weight: bold; font-size: 16px; }
+        .pdf-photo-item img { 
+            width: 80%; /* 사진 너비를 넓게 (4:3 비율을 최대한 활용) */
+            height: 100%; /* 남은 세로 공간 꽉 채우기 */
+            object-fit: contain; /* 비율이 깨지지 않게 쏙 들어가게 함 */
+            border: 2px solid #ddd; 
+            background: #fafafa; 
+        }
     </style>
 </head>
 <body>
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 클라우드 시스템 V15.0</span>
+    <span>(주)METRO R&S 마스터 시스템</span>
 </header>
 
 <div class="container">
@@ -131,240 +146,4 @@
 </div>
 
 <script>
-    const MY_GAS_URL = "https://script.google.com/macros/s/AKfycbzAZ2rx-msOt_LZ1CXtxW17IWLf7uf9k7vZFQsYF9fk3m4xUlRZL5IqiNAQ-hKSSzHD/exec";
-
-    let cloudDB = {}; // 🌟 다중 시트 DB 객체
-    let savedList = []; 
-    let editIndex = -1; 
-    let pendingData = null;
-
-    window.onload = function() {
-        try {
-            const savedEmail = localStorage.getItem('myTargetEmail');
-            if (savedEmail) document.getElementById('target-email').value = savedEmail;
-            document.getElementById('today-date').value = new Date().toISOString().substring(0, 10);
-            
-            // 앱이 켜지면 자동으로 DB를 불러옵니다!
-            fetchCloudDB();
-        } catch(e) {}
-    };
-
-    document.getElementById('target-email').addEventListener('change', function() {
-        localStorage.setItem('myTargetEmail', this.value);
-    });
-
-    function toggleConfig() {
-        const config = document.getElementById('config-section');
-        config.style.display = (config.style.display === 'none' || config.style.display === '') ? 'block' : 'none';
-    }
-
-    // 🌟 클라우드 DB 동기화 함수
-    async function fetchCloudDB() {
-        const select = document.getElementById('db-sheet');
-        select.innerHTML = '<option value="">⏳ 구글 시트에서 DB 다운로드 중...</option>';
-        try {
-            const response = await fetch(MY_GAS_URL); // GET 방식으로 데이터 요청
-            const json = await response.json();
-            
-            if(json.result === 'success') {
-                cloudDB = json.data;
-                const sheetNames = Object.keys(cloudDB);
-                
-                if(sheetNames.length === 0) {
-                    select.innerHTML = '<option value="">⚠️ 구글 시트에 데이터가 없습니다.</option>';
-                    return;
-                }
-                
-                select.innerHTML = '<option value="">📑 공종(작업 시트)을 선택하세요</option>';
-                sheetNames.forEach(name => {
-                    select.innerHTML += `<option value="${name}">${name} (데이터 ${cloudDB[name].length}건)</option>`;
-                });
-                
-            } else {
-                select.innerHTML = '<option value="">❌ DB 연동 실패</option>';
-            }
-        } catch (error) {
-            select.innerHTML = '<option value="">❌ 인터넷 연결을 확인하세요</option>';
-        }
-    }
-
-// 🌟 선택된 공종(시트)에서 번호 검색 (타입 오류 해결버전)
-    function searchAndFill(searchNo) {
-        const selectedSheetName = document.getElementById('db-sheet').value;
-        const fields = ['site', 'dong', 'ho', 'loc', 'work', 'type', 'contractor', 'desc'];
-        
-        if (!selectedSheetName) {
-            alert("먼저 위의 '공종(작업 시트)'을 선택해 주세요!");
-            document.getElementById('no').value = '';
-            return;
-        }
-
-        const currentDB = cloudDB[selectedSheetName] || [];
-        
-        // 🌟 수정된 부분: 구글 시트의 숫자와 입력창의 글자를 모두 문자로 통일해서 비교합니다.
-        const found = currentDB.find(item => String(item.no) === String(searchNo));
-        
-        fields.forEach(id => {
-            document.getElementById(id).value = found ? (found[id] || '') : '';
-            found && found[id] ? document.getElementById(id).classList.add('filled') : document.getElementById(id).classList.remove('filled');
-        });
-    }
-
-    // 시트를 바꿀 때 입력칸만 지우기
-    function clearFormButKeepSheet() {
-        const fields = ['no','site','dong','ho','loc','work','type','contractor','desc'];
-        fields.forEach(id => {
-            document.getElementById(id).value = '';
-            document.getElementById(id).classList.remove('filled');
-        });
-    }
-
-    function view(input, pId, tId) {
-        if(input.files && input.files[0]){
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = document.getElementById(pId);
-                img.src = e.target.result;
-                img.style.display = 'block';
-                document.getElementById(tId).style.display = 'none';
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    function getCurrentData() {
-        return {
-            date: document.getElementById('today-date').value || '-',
-            no: document.getElementById('no').value,
-            site: document.getElementById('site').value,
-            dong: document.getElementById('dong').value,
-            ho: document.getElementById('ho').value,
-            loc: document.getElementById('loc').value,
-            work: document.getElementById('work').value,
-            type: document.getElementById('type').value,
-            contractor: document.getElementById('contractor').value,
-            desc: document.getElementById('desc').value
-        };
-    }
-
-    function saveLocal() {
-        const data = getCurrentData();
-        if(!data.dong || !data.ho) return alert("동/호수는 필수 입력 사항입니다.");
-        if (editIndex > -1) { savedList[editIndex] = data; editIndex = -1; alert("수정되었습니다."); } 
-        else { savedList.push(data); alert("추가되었습니다."); }
-        updateTable();
-        clearForm();
-    }
-
-    function updateTable() {
-        const body = document.getElementById('list-body');
-        if (savedList.length === 0) {
-            body.innerHTML = '<tr><td colspan="4" style="color:#999; padding:20px;">저장된 작업이 없습니다.</td></tr>';
-        } else {
-            body.innerHTML = savedList.map((r, i) => `
-                <tr onclick="editRow(${i})" style="cursor:pointer;">
-                    <td>${r.no || '-'}</td>
-                    <td><b>${r.site}</b><br>${r.dong}-${r.ho}</td>
-                    <td>${r.work}<br><span style="color:#888; font-size:11px;">${r.type}</span></td>
-                    <td><button style="background:#95a5a6; padding:5px 10px; font-size:11px; border:none; border-radius:3px; color:white;" onclick="deleteRow(event, ${i})">삭제</button></td>
-                </tr>`).join('');
-        }
-        document.getElementById('count').innerText = savedList.length;
-    }
-
-    async function sendToGoogleServer() {
-        let email = document.getElementById('target-email').value || localStorage.getItem('myTargetEmail');
-        if(!email) {
-            email = prompt("보고서를 발송할 이메일 주소를 입력하세요:");
-            if(!email) return;
-            document.getElementById('target-email').value = email;
-            localStorage.setItem('myTargetEmail', email);
-        }
-
-        pendingData = getCurrentData();
-        if(!pendingData.dong || !pendingData.ho) return alert("동/호수를 먼저 입력해주세요.");
-
-        const btn = document.querySelector('.btn-send');
-        btn.innerText = "⏳ 1/2: 첨부파일 준비 중...";
-        btn.disabled = true;
-        btn.style.background = "#7f8c8d";
-
-        try {
-            document.getElementById('pdf-date').innerText = pendingData.date;
-            document.getElementById('pdf-no').innerText = pendingData.no || "-";
-            document.getElementById('pdf-site').innerText = pendingData.site || "-";
-            document.getElementById('pdf-unit').innerText = `${pendingData.dong}동 ${pendingData.ho}호`;
-            document.getElementById('pdf-locwork').innerText = `${pendingData.loc} / ${pendingData.work}`;
-            document.getElementById('pdf-type').innerText = pendingData.type;
-            document.getElementById('pdf-contractor').innerText = pendingData.contractor;
-            document.getElementById('pdf-desc').innerText = pendingData.desc;
-            
-            const emptyPx = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
-            document.getElementById('pdf-img1').src = document.getElementById('p1').src || emptyPx;
-            document.getElementById('pdf-img2').src = document.getElementById('p2').src || emptyPx;
-
-            const element = document.getElementById('pdf-template');
-            element.style.display = 'block'; 
-
-            const opt = { margin: [5, 5, 5, 5], filename: `보고서.pdf`, image: { type: 'jpeg', quality: 0.8 }, html2canvas: { scale: 1.5, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-            const pdfBase64String = await html2pdf().set(opt).from(element).output('datauristring');
-            element.style.display = 'none'; 
-            const base64Data = pdfBase64String.split(',')[1];
-
-            let certBase64Data = "";
-            let certFileName = "";
-            const f3 = document.getElementById('f3');
-            if (f3.files && f3.files.length > 0) {
-                const certFile = f3.files[0];
-                const ext = certFile.name.split('.').pop() || 'jpg';
-                certFileName = `완료확인서_${pendingData.dong}동_${pendingData.ho}호.${ext}`;
-                certBase64Data = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-                    reader.readAsDataURL(certFile);
-                });
-            }
-
-            btn.innerText = "⏳ 2/2: 구글 서버 발송 중 (약 5초)...";
-            btn.style.background = "#e67e22";
-
-            const payload = { record: pendingData, pdfBase64: base64Data, certBase64: certBase64Data, certName: certFileName, email: email };
-            const response = await fetch(MY_GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
-            const result = await response.json();
-
-            if(result.result === 'success') {
-                alert(`✅ 완료!\n1. 구글 시트에 기록되었습니다.\n2. [${email}]로 보고서가 발송되었습니다.`);
-                const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho);
-                if(!exists) savedList.push(pendingData);
-                updateTable();
-                clearForm();    
-            } else { alert("⚠️ 서버 오류가 발생했습니다.\n" + result.message); }
-        } catch(e) { alert("❌ 인터넷 연결 불안정 또는 데이터 초과 오류입니다."); }
-
-        btn.innerText = "최종 전송 (시트기록+이메일)";
-        btn.style.background = "var(--share)";
-        btn.disabled = false;
-    }
-
-    function editRow(index) {
-        const data = savedList[index];
-        editIndex = index;
-        const fields = ['site', 'dong', 'ho', 'loc', 'work', 'type', 'contractor', 'desc'];
-        document.getElementById('no').value = data.no;
-        fields.forEach(id => { document.getElementById(id).value = data[id]; document.getElementById(id).classList.add('filled'); });
-        window.scrollTo({top: 0, behavior: 'smooth'});
-    }
-    
-    function deleteRow(e, i) { e.stopPropagation(); if(confirm("삭제할까요?")) { savedList.splice(i, 1); updateTable(); } }
-    
-    function clearForm() {
-        const fields = ['no','site','dong','ho','loc','work','type','contractor','desc'];
-        fields.forEach(id => { document.getElementById(id).value = ''; document.getElementById(id).classList.remove('filled'); });
-        [1,2,3].forEach(i => { document.getElementById('p'+i).style.display = 'none'; document.getElementById('t'+i).style.display = 'block'; document.getElementById('f'+i).value = ''; document.getElementById('p'+i).src = ''; });
-        document.getElementById('db-sheet').value = ''; // 콤보박스 초기화
-        editIndex = -1;
-    }
-</script>
-</body>
-</html>
-
+    const MY_GAS_URL = "
