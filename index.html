@@ -84,7 +84,10 @@
     <div id="config-section" class="section">
         <div class="section-title">🔗 시스템 연동 및 DB 로드</div>
         <input type="password" id="api-url" placeholder="https://sheetdb.io/api/v1/espz77lzn6sii" style="margin-bottom:10px;">
-        <input type="file" id="excel-file" accept=".xlsx, .xls" onchange="loadExcelDB(this)">
+        <input type="file" id="excel-file" 
+       accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+       onclick="this.value=null" 
+       onchange="loadExcelDB(this)">
         <p style="font-size: 11px; color: #888; margin-top: 5px;">* 엑셀 양식: 번호, 현장명, 동, 호, 위치, 공종, 유형, 시공업체, 내용</p>
     </div>
 
@@ -393,4 +396,5 @@
 </script>
 </body>
 </html>
+
 
