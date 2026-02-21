@@ -352,13 +352,24 @@
             const response = await fetch(MY_GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
             const result = await response.json();
 
+// --- 이 부분부터 ---
             if(result.result === 'success') {
-                alert(`✅ 완료!\n1. 기록되었습니다.\n2. [${email}]로 보고서가 발송되었습니다.`);
+                alert(`✅ 완료!\n1. 구글 시트에 기록되었습니다.\n2. [${email}]로 보고서가 발송되었습니다.`);
                 const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho);
                 if(!exists) savedList.push(pendingData);
                 updateTable();
                 clearForm();    
-            } else { alert("⚠️ 서버 오류가 발생했습니다.\n" + result.message); }
+            } else if (result.result === 'half_success') {
+                // 🌟 한도 초과 시 처리 로직 추가
+                alert(`⚠️ 이메일 발송 한도 초과 (기록은 성공!)\n\n구글 계정의 오늘 이메일 발송 한도가 소진되어 메일은 가지 않았지만, 데이터는 [구글 시트]에 안전하게 기록되었습니다!`);
+                const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho);
+                if(!exists) savedList.push(pendingData);
+                updateTable();
+                clearForm(); 
+            } else { 
+                alert("⚠️ 서버 오류가 발생했습니다.\n" + result.message); 
+            }
+            // --- 여기까지 교체 ---
         } catch(e) { alert("❌ 인터넷 연결 불안정 또는 데이터 초과 오류입니다."); }
 
         btn.innerText = "최종 전송 (기록+이메일)";
@@ -387,4 +398,5 @@
 </script>
 </body>
 </html>
+
 
