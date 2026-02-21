@@ -13,14 +13,19 @@
         .container { padding: 10px; max-width: 800px; margin: auto; }
         .section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .section-title { font-weight: bold; color: var(--accent); margin-bottom: 12px; border-left: 4px solid var(--accent); padding-left: 8px; font-size: 15px; }
+        
+        /* 설정창 디자인 */
         #config-section { display: none; border: 2px solid #eee; background-color: #fafafa; }
-        .btn-toggle-config { background: #7f8c8d; color: white; margin-bottom: 10px; font-size: 13px; padding: 12px; width: 100%; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-toggle-config { background: #7f8c8d; color: white; margin-bottom: 10px; font-size: 13px; padding: 12px; width: 100%; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-toggle-config:active { background: #6c7a7d; }
+        
         .grid-input { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         #today-date { grid-column: span 2; background-color: #fff9e6; border: 1px solid #ffd32a; font-weight: bold; color: #d35400; }
         #no { grid-column: span 2; border: 2px solid var(--accent); font-weight: bold; font-size: 16px; text-align: center; }
         #site, #desc { grid-column: span 2; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .filled { background-color: var(--highlight); border-color: var(--success); } 
+        
         .photo-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
         .photo-box { background: #f8f9fa; height: 100px; display: flex; align-items: center; justify-content: center; border: 2px dashed #cfd8dc; border-radius: 8px; cursor: pointer; position: relative; overflow: hidden; }
         .photo-box span { font-size: 12px; color: #546e7a; font-weight: bold; text-align: center; }
@@ -37,7 +42,7 @@
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f9fa; }
 
-        /* 📄 PDF 전용 숨김 양식 */
+        /* 📄 PDF 전용 양식 */
         #pdf-template { display: none; padding: 0 30px 15px 30px; background: white; width: 750px; font-family: 'Malgun Gothic', sans-serif; box-sizing: border-box; }
         #pdf-template h1 { text-align: center; color: #1e272e; margin: 5px 0 10px 0; font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; }
         #pdf-template table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -52,8 +57,8 @@
 <body>
 
 <header>
-    <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;">
-    <span>(주)METRO R&S 현장관리 시스템 V11.0</span>
+    <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
+    <span>(주)METRO R&S 현장관리 시스템 V12.0</span>
 </header>
 
 <div class="container">
@@ -61,7 +66,7 @@
 
     <div id="config-section" class="section">
         <div class="section-title">🔗 시스템 연동</div>
-        <input type="password" id="api-url" placeholder="API URL (미입력 시 고정 URL 사용)">
+        <input type="password" id="api-url" placeholder="API URL (미입력 시 기본 주소 사용)">
         <input type="file" id="excel-file" accept=".xlsx, .xls" onchange="loadExcelDB(this)" style="margin-top:10px;">
     </div>
 
@@ -144,45 +149,68 @@
 </div>
 
 <script>
+    // 전역 변수 설정
     let excelDB = []; 
     let savedList = []; 
     let editIndex = -1; 
-    
-    // 전역 변수: 1단계에서 구운 PDF와 사진 파일을 보관합니다.
     let preparedFilesToShare = [];
     let pendingData = null;
 
+    // [중요] 브라우저 오류 방지를 위한 안전한 초기화
     window.onload = function() {
-        const savedUrl = localStorage.getItem('mySheetDbUrl');
-        if (savedUrl) document.getElementById('api-url').value = savedUrl;
-        document.getElementById('today-date').value = new Date().toISOString().substring(0, 10);
+        try {
+            const savedUrl = localStorage.getItem('mySheetDbUrl');
+            if (savedUrl) document.getElementById('api-url').value = savedUrl;
+            
+            const today = new Date().toISOString().substring(0, 10);
+            document.getElementById('today-date').value = today;
+        } catch(e) {
+            console.warn("초기화 중 일부 오류 무시됨: ", e);
+        }
     };
 
+    // 🌟 멈춤 현상 완벽 해결: 확실하게 작동하는 토글 함수 🌟
     function toggleConfig() {
-        const config = document.getElementById('config-section');
-        config.style.display = (config.style.display === 'none' || config.style.display === '') ? 'block' : 'none';
+        try {
+            const config = document.getElementById('config-section');
+            if (config.style.display === 'none' || config.style.display === '') {
+                config.style.display = 'block';
+            } else {
+                config.style.display = 'none';
+            }
+        } catch(e) {
+            alert("설정창을 여는 중 문제가 발생했습니다.");
+        }
     }
 
     function loadExcelDB(input) {
-        // (기존과 동일)
+        if (!input.files || input.files.length === 0) return;
         const file = input.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
-            excelDB = jsonData.slice(1).map(row => ({
-                no: row[0]?.toString(), site: row[1]||'', dong: row[2]||'', ho: row[3]||'',
-                loc: row[4]||'', work: row[5]||'', type: row[6]||'', contractor: row[7]||'', desc: row[8]||''
-            }));
-            alert(`엑셀 DB 로드 완료! (${excelDB.length}건)`);
-            toggleConfig();
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                excelDB = jsonData.slice(1).map(row => ({
+                    no: row[0]?.toString() || '', site: row[1]||'', dong: row[2]||'', ho: row[3]||'',
+                    loc: row[4]||'', work: row[5]||'', type: row[6]||'', contractor: row[7]||'', desc: row[8]||''
+                }));
+                alert(`엑셀 DB 로드 완료! (${excelDB.length}건)`);
+                document.getElementById('config-section').style.display = 'none'; // 로드 후 닫기
+            } catch(err) {
+                alert("엑셀 파일을 읽는 중 오류가 발생했습니다.");
+            }
         };
         reader.readAsArrayBuffer(file);
     }
 
     function searchAndFill(searchNo) {
         const fields = ['site', 'dong', 'ho', 'loc', 'work', 'type', 'contractor', 'desc'];
+        if (!searchNo) {
+            fields.forEach(id => { document.getElementById(id).value = ''; document.getElementById(id).classList.remove('filled'); });
+            return;
+        }
         const found = excelDB.find(item => item.no === searchNo.toString());
         fields.forEach(id => {
             document.getElementById(id).value = found ? found[id] : '';
@@ -215,7 +243,7 @@
 
     function getCurrentData() {
         return {
-            date: document.getElementById('today-date').value,
+            date: document.getElementById('today-date').value || '-',
             no: document.getElementById('no').value,
             site: document.getElementById('site').value,
             dong: document.getElementById('dong').value,
@@ -244,23 +272,37 @@
         clearForm();
     }
 
+    function updateTable() {
+        const body = document.getElementById('list-body');
+        if (savedList.length === 0) {
+            body.innerHTML = '<tr><td colspan="4" style="color:#999; padding:20px;">저장된 작업이 없습니다.</td></tr>';
+        } else {
+            body.innerHTML = savedList.map((r, i) => `
+                <tr onclick="editRow(${i})" style="cursor:pointer;">
+                    <td>${r.no || '-'}</td>
+                    <td><b>${r.site}</b><br>${r.dong}-${r.ho}</td>
+                    <td>${r.work}<br><span style="color:#888; font-size:11px;">${r.type}</span></td>
+                    <td><button style="background:#95a5a6; padding:5px 10px; font-size:11px; border:none; border-radius:3px; color:white;" onclick="deleteRow(event, ${i})">삭제</button></td>
+                </tr>`).join('');
+        }
+        document.getElementById('count').innerText = savedList.length;
+    }
+
     // ==========================================
-    // 🌟 [1단계] PDF 먼저 굽고 사용자 터치 대기
+    // 🌟 [1단계] PDF 굽기 대기 모드
     // ==========================================
     async function prepareShareAndSend() {
         pendingData = getCurrentData();
-        
         if(!pendingData.dong || !pendingData.ho) {
-            return alert("화면에 입력된 데이터가 없습니다. 빈 양식이거나 임시저장으로 화면이 지워졌다면, 하단 리스트를 클릭해 다시 불러오신 후 전송해주세요.");
+            return alert("먼저 현장 정보(동/호수 등)를 입력해주세요.");
         }
 
         const btn = document.querySelector('.btn-send');
         btn.innerText = "⏳ 1단계: PDF 굽는 중...";
         btn.disabled = true;
-        btn.style.background = "#7f8c8d"; // 회색으로 변경
+        btn.style.background = "#7f8c8d";
 
         try {
-            // PDF 매핑
             document.getElementById('pdf-date').innerText = pendingData.date;
             document.getElementById('pdf-no').innerText = pendingData.no || "-";
             document.getElementById('pdf-site').innerText = pendingData.site || "-";
@@ -269,8 +311,11 @@
             document.getElementById('pdf-type').innerText = pendingData.type;
             document.getElementById('pdf-contractor').innerText = pendingData.contractor;
             document.getElementById('pdf-desc').innerText = pendingData.desc;
-            document.getElementById('pdf-img1').src = document.getElementById('p1').src || "";
-            document.getElementById('pdf-img2').src = document.getElementById('p2').src || "";
+            
+            // 사진 매핑 (없으면 빈 투명 픽셀 처리하여 에러 방지)
+            const emptyPx = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+            document.getElementById('pdf-img1').src = document.getElementById('p1').src || emptyPx;
+            document.getElementById('pdf-img2').src = document.getElementById('p2').src || emptyPx;
 
             const element = document.getElementById('pdf-template');
             element.style.display = 'block'; 
@@ -283,43 +328,142 @@
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            // PDF 파일 객체로 생성
             const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
             element.style.display = 'none'; 
+            
             const pdfFile = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
             preparedFilesToShare = [pdfFile];
 
-            // 완료확인서 첨부
             const f3 = document.getElementById('f3');
             if (f3.files && f3.files.length > 0) {
                 const imgFile = f3.files[0];
-                const ext = imgFile.name.split('.').pop();
+                const ext = imgFile.name.split('.').pop() || 'jpg';
                 const renamedImg = new File([imgFile], `완료확인서_${pendingData.dong}동_${pendingData.ho}호.${ext}`, { type: imgFile.type });
                 preparedFilesToShare.push(renamedImg);
             }
 
-            // 🌟 1단계 완료! 버튼을 눈에 띄게 변경하고 2단계 함수 연결 🌟
-            btn.innerText = "👉 2단계: 여기를 눌러 카톡 공유하기!";
-            btn.style.background = "#e74c3c"; // 강렬한 빨간색
+            // 2단계 전환
+            btn.innerText = "👉 2단계: 터치하여 카톡 공유하기!";
+            btn.style.background = "#e74c3c";
             btn.disabled = false;
-            btn.onclick = executeShareAndSend; // 클릭 시 2단계로 넘어감
+            btn.onclick = executeShareAndSend;
 
         } catch(e) {
-            alert("❌ PDF 생성 오류: " + e.message);
+            alert("❌ PDF 생성 중 오류가 발생했습니다.");
             resetSendButton();
+            document.getElementById('pdf-template').style.display = 'none';
         }
     }
 
     // ==========================================
-    // 🌟 [2단계] 보안 통과용 즉시 공유 및 시트 전송
+    // 🌟 [2단계] 공유 호출 및 시트 전송
     // ==========================================
     async function executeShareAndSend() {
         const btn = document.querySelector('.btn-send');
         
-        // [A] 카톡 공유 (터치 즉시 실행되므로 스마트폰 보안 무사통과!)
+        // 카톡 공유
         if (navigator.canShare && navigator.canShare({ files: preparedFilesToShare })) {
             try {
                 await navigator.share({
                     files: preparedFilesToShare,
                     title: `[보고서] ${pendingData.dong}동 ${pendingData.ho}호`,
-                    text: `현장명: ${pendingData.site}\n동/호수: ${
+                    text: `현장명: ${pendingData.site}\n동/호수: ${pendingData.dong}동 ${pendingData.ho}호\n작업완료 보고서 및 완료확인서 첨부합니다.`
+                });
+            } catch (err) {
+                console.log("사용자가 공유창을 닫았습니다.");
+            }
+        } else {
+            alert("현재 기기가 자동 공유를 지원하지 않아 PDF가 일반 다운로드됩니다.");
+            const pdfUrl = URL.createObjectURL(preparedFilesToShare[0]);
+            const a = document.createElement('a');
+            a.href = pdfUrl;
+            a.download = preparedFilesToShare[0].name;
+            a.click();
+            URL.revokeObjectURL(pdfUrl);
+        }
+
+        // 구글 시트 전송
+        btn.innerText = "⏳ 3단계: 구글 시트 전송 중...";
+        btn.disabled = true;
+        btn.style.background = "#e67e22";
+
+        try {
+            const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho && item.desc === pendingData.desc);
+            if(!exists) savedList.push(pendingData);
+
+            const MY_API_URL = "https://sheetdb.io/api/v1/espz77lzn6sii"; 
+            const url = document.getElementById('api-url').value || MY_API_URL;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ data: savedList }) 
+            });
+
+            if(response.ok) {
+                alert("✅ 공유 및 구글 시트 백업이 모두 완료되었습니다!");
+                savedList = []; 
+                updateTable();
+                clearForm();    
+            } else { 
+                alert("⚠️ 카톡 공유는 완료되었으나 구글 시트 전송에 실패했습니다."); 
+            }
+        } catch(e) { 
+            alert("❌ 통신 오류: 인터넷 연결을 확인해주세요."); 
+        }
+        
+        resetSendButton();
+    }
+
+    function resetSendButton() {
+        const btn = document.querySelector('.btn-send');
+        btn.innerText = "최종 전송 및 공유 (PDF+시트)";
+        btn.style.background = "var(--share)";
+        btn.disabled = false;
+        btn.onclick = prepareShareAndSend;
+    }
+
+    function editRow(index) {
+        const data = savedList[index];
+        editIndex = index;
+        document.getElementById('today-date').value = data.date;
+        document.getElementById('no').value = data.no;
+        document.getElementById('site').value = data.site;
+        document.getElementById('dong').value = data.dong;
+        document.getElementById('ho').value = data.ho;
+        document.getElementById('loc').value = data.loc;
+        document.getElementById('work').value = data.work;
+        document.getElementById('type').value = data.type;
+        document.getElementById('contractor').value = data.contractor;
+        document.getElementById('desc').value = data.desc;
+        
+        const fields = ['site', 'dong', 'ho', 'loc', 'work', 'type', 'contractor', 'desc'];
+        fields.forEach(id => document.getElementById(id).classList.add('filled'));
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function deleteRow(e, i) { 
+        e.stopPropagation(); 
+        if(confirm("이 항목을 삭제할까요?")) { 
+            savedList.splice(i, 1); 
+            updateTable(); 
+        } 
+    }
+
+    function clearForm() {
+        const fields = ['no','site','dong','ho','loc','work','type','contractor','desc'];
+        fields.forEach(id => {
+            document.getElementById(id).value = '';
+            document.getElementById(id).classList.remove('filled');
+        });
+        [1,2,3].forEach(i => {
+            document.getElementById('p'+i).style.display = 'none';
+            document.getElementById('t'+i).style.display = 'block';
+            document.getElementById('f'+i).value = '';
+            document.getElementById('p'+i).src = '';
+        });
+        editIndex = -1;
+    }
+</script>
+</body>
+</html>
