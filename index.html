@@ -9,41 +9,41 @@
     <style>
         :root { --primary: #1e272e; --accent: #3498db; --success: #27ae60; --pdf: #e74c3c; --highlight: #e8f6f3; }
         body { font-family: 'Pretendard', sans-serif; margin: 0; background: #f0f2f5; font-size: 14px; color: #333; padding-bottom: 50px; }
-        
         header { background: var(--primary); color: white; padding: 15px; font-weight: bold; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .container { padding: 10px; max-width: 800px; margin: auto; }
         .section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .section-title { font-weight: bold; color: var(--accent); margin-bottom: 12px; border-left: 4px solid var(--accent); padding-left: 8px; font-size: 15px; }
-        
         #config-section { display: none; border: 2px solid #eee; background-color: #fafafa; }
         .btn-toggle-config { background: #7f8c8d; color: white; margin-bottom: 10px; font-size: 13px; padding: 12px; width: 100%; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
         .grid-input { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         #today-date { grid-column: span 2; background-color: #fff9e6; border: 1px solid #ffd32a; font-weight: bold; color: #d35400; }
         #no { grid-column: span 2; border: 2px solid var(--accent); font-weight: bold; font-size: 16px; text-align: center; }
         #site, #desc { grid-column: span 2; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .filled { background-color: var(--highlight); border-color: var(--success); } 
-        
         .photo-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
         .photo-box { background: #f8f9fa; height: 100px; display: flex; align-items: center; justify-content: center; border: 2px dashed #cfd8dc; border-radius: 8px; cursor: pointer; position: relative; overflow: hidden; }
         .photo-box span { font-size: 12px; color: #546e7a; font-weight: bold; }
         .preview-img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0; }
-        
         .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
         button { flex: 1; min-width: 100px; padding: 14px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
         .btn-save { background: var(--success); }
         .btn-pdf { background: var(--pdf); }
         .btn-send { background: #e67e22; }
-
-        /* 검색창 및 테이블 */
         #search-box { width: 100%; border: 2px solid var(--accent); margin-bottom: 10px; padding: 10px; border-radius: 6px; }
         .table-wrapper { overflow-x: auto; border-radius: 6px; border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; min-width: 500px; }
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f9fa; }
 
-        #pdf-template { display: none; }
+        /* 📄 PDF 출력 전용 숨김 양식 */
+        #pdf-template { display: none; padding: 40px; background: white; width: 750px; font-family: 'Malgun Gothic', sans-serif; }
+        #pdf-template table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        #pdf-template th, #pdf-template td { border: 1px solid #333; padding: 12px; text-align: center; }
+        #pdf-template .label { background: #f2f2f2; font-weight: bold; width: 20%; }
+        .pdf-photo-grid { display: flex; gap: 10px; margin-top: 20px; }
+        .pdf-photo-item { flex: 1; text-align: center; }
+        .pdf-photo-item img { width: 100%; height: 250px; object-fit: contain; border: 1px solid #ddd; }
     </style>
 </head>
 <body>
@@ -58,7 +58,7 @@
 
     <div id="config-section" class="section">
         <div class="section-title">🔗 시스템 연동</div>
-        <input type="password" id="api-url" placeholder="https://sheetdb.io/api/v1/espz77lzn6sii">
+        <input type="password" id="api-url" placeholder="API URL 자동저장용">
         <input type="file" id="excel-file" accept=".xlsx, .xls" onchange="loadExcelDB(this)" style="margin-top:10px;">
     </div>
 
@@ -113,6 +113,34 @@
     </div>
 </div>
 
+<div id="pdf-template">
+    <h2 style="text-align:center; border-bottom: 2px solid #333; padding-bottom:10px;">하자보수 작업 완료 보고서</h2>
+    <table>
+        <tr>
+            <td class="label">점검일자</td><td id="pdf-date"></td>
+            <td class="label">관리번호</td><td id="pdf-no"></td>
+        </tr>
+        <tr>
+            <td class="label">현장명</td><td id="pdf-site" colspan="3"></td>
+        </tr>
+        <tr>
+            <td class="label">동/호수</td><td id="pdf-unit"></td>
+            <td class="label">위치/공종</td><td id="pdf-locwork"></td>
+        </tr>
+        <tr>
+            <td class="label">하자유형</td><td id="pdf-type"></td>
+            <td class="label">시공업체</td><td id="pdf-contractor"></td>
+        </tr>
+        <tr>
+            <td class="label">상세내용</td><td id="pdf-desc" colspan="3" style="text-align:left; height:80px; vertical-align:top;"></td>
+        </tr>
+    </table>
+    <div class="pdf-photo-grid">
+        <div class="pdf-photo-item"><p>[ 수리 전 ]</p><img id="pdf-img1"></div>
+        <div class="pdf-photo-item"><p>[ 수리 후 ]</p><img id="pdf-img2"></div>
+    </div>
+</div>
+
 <script>
     let excelDB = []; 
     let savedList = []; 
@@ -121,8 +149,6 @@
     window.onload = function() {
         const savedUrl = localStorage.getItem('mySheetDbUrl');
         if (savedUrl) document.getElementById('api-url').value = savedUrl;
-        
-        // 🌟 오늘 날짜 자동 세팅
         document.getElementById('today-date').value = new Date().toISOString().substring(0, 10);
     };
 
@@ -131,7 +157,6 @@
         config.style.display = (config.style.display === 'none' || config.style.display === '') ? 'block' : 'none';
     }
 
-    // 엑셀 DB 로드
     function loadExcelDB(input) {
         const file = input.files[0];
         const reader = new FileReader();
@@ -149,7 +174,6 @@
         reader.readAsArrayBuffer(file);
     }
 
-    // 자동 완성
     function searchAndFill(searchNo) {
         const fields = ['site', 'dong', 'ho', 'loc', 'work', 'type', 'contractor', 'desc'];
         const found = excelDB.find(item => item.no === searchNo.toString());
@@ -171,7 +195,6 @@
         }
     }
 
-    // 실시간 필터링 기능 🌟
     function filterTable() {
         const filter = document.getElementById('search-box').value.toUpperCase();
         const trs = document.getElementById('list-body').getElementsByTagName('tr');
@@ -180,10 +203,9 @@
         }
     }
 
-    // 임시 저장 (날짜 포함)
     function saveLocal() {
         const data = {
-            date: document.getElementById('today-date').value, // 날짜 추가
+            date: document.getElementById('today-date').value,
             no: document.getElementById('no').value,
             site: document.getElementById('site').value,
             dong: document.getElementById('dong').value,
@@ -194,12 +216,9 @@
             contractor: document.getElementById('contractor').value,
             desc: document.getElementById('desc').value
         };
-
         if(!data.dong || !data.ho) return alert("동/호수는 필수입니다.");
-
         if (editIndex > -1) { savedList[editIndex] = data; editIndex = -1; } 
         else { savedList.push(data); }
-
         updateTable();
         clearForm();
     }
@@ -212,44 +231,28 @@
                     <td>${r.no || '-'}</td>
                     <td><b>${r.site}</b><br>${r.dong}-${r.ho}</td>
                     <td>${r.work}<br><span style="color:#888; font-size:11px;">${r.type}</span></td>
-                    <td><button style="background:#95a5a6; padding:5px; font-size:11px;" onclick="deleteRow(event, ${i})">삭제</button></td>
+                    <td><button style="background:#95a5a6; padding:5px; font-size:11px; border:none; border-radius:3px; color:white;" onclick="deleteRow(event, ${i})">삭제</button></td>
                 </tr>`).join('');
         document.getElementById('count').innerText = savedList.length;
     }
 
-// [6] 구글 시트 전송 (URL 고정 및 오류 수정 버전) 🌟
     async function sendSheetDB() {
-        // 🌟 아래 변수에 본인의 API 주소를 정확히 입력하세요.
-        // 현재 코드에 적혀있던 주소를 제가 넣어두었습니다.
         const MY_API_URL = "https://sheetdb.io/api/v1/espz77lzn6sii"; 
-
-        if(savedList.length === 0) {
-            return alert("전송할 데이터가 없습니다. 먼저 [임시 저장]을 눌러 목록을 채워주세요.");
-        }
-        
+        if(savedList.length === 0) return alert("전송할 데이터가 없습니다.");
         const btn = document.querySelector('.btn-send');
         btn.innerText = "⏳ 전송 중...";
         btn.disabled = true;
-
         try {
             const response = await fetch(MY_API_URL, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ data: savedList }) 
             });
-            
             if(response.ok) {
-                alert("✅ 구글 시트로 데이터가 안전하게 전송되었습니다!");
-                savedList = []; // 성공 시 목록 초기화
-                updateTable();
-            } else { 
-                const result = await response.json();
-                alert("❌ 전송 실패: 구글 시트의 1행(헤더) 이름이 아래와 일치하는지 확인하세요.\n(date, no, site, dong, ho, loc, work, type, contractor, desc)\n\n상세오류: " + JSON.stringify(result)); 
-            }
-        } catch(e) { 
-            alert("❌ 통신 오류: 인터넷 연결을 확인하거나 API 주소가 정확한지 확인해 주세요."); 
-        }
-        
+                alert("✅ 구글 시트 전송 성공!");
+                savedList = []; updateTable();
+            } else { alert("❌ 전송 실패: 헤더 구성을 확인하세요."); }
+        } catch(e) { alert("❌ 통신 오류"); }
         btn.innerText = "구글 시트 최종 전송";
         btn.disabled = false;
     }
@@ -258,7 +261,8 @@
         const data = savedList[index];
         editIndex = index;
         ['today-date','no','site','dong','ho','loc','work','type','contractor','desc'].forEach(id => {
-            document.getElementById(id).value = data[id === 'today-date' ? 'date' : id];
+            const val = data[id === 'today-date' ? 'date' : id];
+            document.getElementById(id).value = val;
         });
         window.scrollTo({top: 0, behavior: 'smooth'});
     }
@@ -266,18 +270,52 @@
     function deleteRow(e, i) { e.stopPropagation(); if(confirm("삭제할까요?")) { savedList.splice(i, 1); updateTable(); } }
 
     function clearForm() {
-        ['no','site','dong','ho','loc','work','type','contractor','desc'].forEach(id => document.getElementById(id).value = '');
-        [1,2,3].forEach(i => { document.getElementById('p'+i).style.display = 'none'; document.getElementById('t'+i).style.display = 'block'; });
+        ['no','site','dong','ho','loc','work','type','contractor','desc'].forEach(id => {
+            document.getElementById(id).value = '';
+            document.getElementById(id).classList.remove('filled');
+        });
+        [1,2,3].forEach(i => {
+            document.getElementById('p'+i).style.display = 'none';
+            document.getElementById('t'+i).style.display = 'block';
+            document.getElementById('f'+i).value = '';
+        });
     }
 
+    // 📄 PDF 생성 핵심 로직 완성 🌟
     function makePDF() {
-        // PDF 생성 로직 (이전과 동일)
-        alert("PDF 생성을 시작합니다.");
-        // ... (생략된 PDF 상세 로직은 이전 답변과 동일하게 적용 가능)
+        const dong = document.getElementById('dong').value;
+        const ho = document.getElementById('ho').value;
+        if(!dong || !ho) return alert("동/호수를 먼저 입력하거나 목록에서 선택해주세요.");
+
+        // 데이터 맵핑
+        document.getElementById('pdf-date').innerText = document.getElementById('today-date').value;
+        document.getElementById('pdf-no').innerText = document.getElementById('no').value || "-";
+        document.getElementById('pdf-site').innerText = document.getElementById('site').value || "-";
+        document.getElementById('pdf-unit').innerText = `${dong}동 ${ho}호`;
+        document.getElementById('pdf-locwork').innerText = `${document.getElementById('loc').value} / ${document.getElementById('work').value}`;
+        document.getElementById('pdf-type').innerText = document.getElementById('type').value;
+        document.getElementById('pdf-contractor').innerText = document.getElementById('contractor').value;
+        document.getElementById('pdf-desc').innerText = document.getElementById('desc').value;
+
+        // 사진 맵핑 (미리보기 이미지의 src를 그대로 가져옴)
+        document.getElementById('pdf-img1').src = document.getElementById('p1').src || "";
+        document.getElementById('pdf-img2').src = document.getElementById('p2').src || "";
+
+        const element = document.getElementById('pdf-template');
+        element.style.display = 'block'; // 캡처를 위해 잠시 보임
+
+        const opt = {
+            margin: 10,
+            filename: `하자보수_${dong}동_${ho}호.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            element.style.display = 'none'; // 다운로드 후 다시 숨김
+        });
     }
 </script>
 </body>
 </html>
-
-
-
