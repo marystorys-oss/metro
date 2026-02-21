@@ -188,7 +188,7 @@
         }
     }
 
-    // 🌟 선택된 공종(시트)에서 번호 검색
+// 🌟 선택된 공종(시트)에서 번호 검색 (타입 오류 해결버전)
     function searchAndFill(searchNo) {
         const selectedSheetName = document.getElementById('db-sheet').value;
         const fields = ['site', 'dong', 'ho', 'loc', 'work', 'type', 'contractor', 'desc'];
@@ -200,7 +200,9 @@
         }
 
         const currentDB = cloudDB[selectedSheetName] || [];
-        const found = currentDB.find(item => item.no === searchNo.toString());
+        
+        // 🌟 수정된 부분: 구글 시트의 숫자와 입력창의 글자를 모두 문자로 통일해서 비교합니다.
+        const found = currentDB.find(item => String(item.no) === String(searchNo));
         
         fields.forEach(id => {
             document.getElementById(id).value = found ? (found[id] || '') : '';
@@ -365,3 +367,4 @@
 </script>
 </body>
 </html>
+
