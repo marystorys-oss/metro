@@ -287,15 +287,17 @@
         btn.disabled = true;
         btn.style.background = "#7f8c8d";
 
-        try {
+ try {
+            // --- 여기서부터 ---
             document.getElementById('pdf-date').innerText = pendingData.date;
-            document.getElementById('pdf-no').innerText = pendingData.no || "-";
+            document.getElementById('pdf-contractor').innerText = pendingData.contractor || "-";
             document.getElementById('pdf-site').innerText = pendingData.site || "-";
             document.getElementById('pdf-unit').innerText = `${pendingData.dong}동 ${pendingData.ho}호`;
-            document.getElementById('pdf-locwork').innerText = `${pendingData.loc} / ${pendingData.work}`;
-            document.getElementById('pdf-type').innerText = pendingData.type;
-            document.getElementById('pdf-contractor').innerText = pendingData.contractor;
-            document.getElementById('pdf-desc').innerText = pendingData.desc;
+            document.getElementById('pdf-loc').innerText = pendingData.loc || "-";
+            document.getElementById('pdf-work').innerText = pendingData.work || "-";
+            document.getElementById('pdf-type').innerText = pendingData.type || "-";
+            document.getElementById('pdf-desc').innerText = pendingData.desc || "-";
+            // --- 여기까지 교체 ---
             
             const emptyPx = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
             document.getElementById('pdf-img1').src = document.getElementById('p1').src || emptyPx;
@@ -382,3 +384,4 @@
 </script>
 </body>
 </html>
+
