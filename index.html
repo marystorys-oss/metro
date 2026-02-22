@@ -3,18 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>METRO R&S 스마트 현장관리 시스템</title>
+    <title>METRO R&S 현장관리 시스템</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root { --primary: #1e272e; --accent: #3498db; --success: #27ae60; --pdf: #e74c3c; --highlight: #e8f6f3; --share: #9b59b6; }
         body { font-family: 'Pretendard', sans-serif; margin: 0; background: #f0f2f5; font-size: 14px; color: #333; padding-bottom: 50px; }
+        
+        /* 헤더 디자인 및 아이콘 크기 확대 */
         header { background: var(--primary); color: white; padding: 15px; font-weight: bold; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        header span { font-size: 16px; } /* 타이틀 글자 크기 최적화 */
+        .setting-icon { position: absolute; right: 15px; font-size: 26px; cursor: pointer; transition: transform 0.2s; }
+        .setting-icon:active { transform: scale(0.9); }
+        
         .container { padding: 10px; max-width: 800px; margin: auto; }
         .section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .section-title { font-weight: bold; color: var(--accent); margin-bottom: 12px; border-left: 4px solid var(--accent); padding-left: 8px; font-size: 15px; }
         
         #config-section { display: none; border: 2px solid #eee; background-color: #fafafa; }
-        .btn-toggle-config { background: #7f8c8d; color: white; margin-bottom: 10px; font-size: 13px; padding: 12px; width: 100%; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         
         .grid-input { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         #today-date { grid-column: span 2; background-color: #fff9e6; border: 1px solid #ffd32a; font-weight: bold; color: #d35400; }
@@ -41,7 +46,6 @@
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f9fa; }
 
-        /* PDF 템플릿 CSS: 위쪽 패딩을 30px에서 20px로 살짝 줄임 */
         #pdf-template { 
             display: none; width: 794px; height: 1122px; padding: 20px 40px; 
             background: white; font-family: 'Malgun Gothic', sans-serif; box-sizing: border-box; 
@@ -61,12 +65,11 @@
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 현장관리 시스템 V18.2</span>
+    <span>(주)METRO R&S 현장관리 시스템 V18.5</span>
+    <span class="setting-icon" onclick="toggleConfig()" title="설정 열기/닫기">⚙️</span>
 </header>
 
 <div class="container">
-    <button class="btn-toggle-config" onclick="toggleConfig()">⚙️ 설정 열기/닫기 ▼</button>
-
     <div id="config-section" class="section">
         <div class="section-title">🔗 수신 이메일 설정</div>
         <input type="email" id="target-email" placeholder="보고서를 받을 이메일 주소 (자동저장)" style="margin-bottom:10px; font-weight:bold; color:#d35400;">
@@ -205,10 +208,11 @@
         canvas.width = w; canvas.height = h;
         ctx.drawImage(imgObj, 0, 0, w, h);
 
-        // 🌟 V18.2: 박스 너비를 조금 줄이고, 항목 열을 22%로 좁혀서 타이트하게 만듦
-        const boxWidth = w * 0.45; // 박스 전체 너비를 45%로 약간 축소
-        const boxHeight = h * 0.22; 
-        const x = 20; const y = h - boxHeight - 20;
+        const boxWidth = w * 0.45;
+        const boxHeight = h * 0.22;
+        // 여백 없이 왼쪽 하단 모서리에 완벽 밀착
+        const x = 0;
+        const y = h - boxHeight;
         
         ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
         ctx.fillRect(x, y, boxWidth, boxHeight);
@@ -220,7 +224,7 @@
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         
         const lineHeight = boxHeight / 5; const paddingX = fontSize;
-        const colDivider = boxWidth * 0.22; // 👈 항목 열 너비를 22%로 확 줄임 (예전엔 30%)
+        const colDivider = boxWidth * 0.22;
         
         let descSuffix = "";
         if (pId === 'p1') descSuffix = " - [전]";
@@ -238,10 +242,8 @@
         for(let i=0; i<5; i++) {
             let currentY = y + (lineHeight * i) + (lineHeight / 2);
             ctx.fillText(labels[i], x + paddingX, currentY);
-            // 항목 구분 세로선 그리기 (좁아진 간격 적용)
             ctx.beginPath(); ctx.moveTo(x + colDivider, y + (lineHeight * i)); ctx.lineTo(x + colDivider, y + (lineHeight * (i+1))); ctx.stroke();
             if(i < 4) { ctx.beginPath(); ctx.moveTo(x, y + (lineHeight * (i+1))); ctx.lineTo(x + boxWidth, y + (lineHeight * (i+1))); ctx.stroke(); }
-            // 내용 텍스트 그리기
             ctx.fillText(values[i], x + colDivider + paddingX, currentY);
         }
         
@@ -354,7 +356,6 @@
             const element = document.getElementById('pdf-template');
             element.style.display = 'block'; 
 
-            // 🌟 V18.2 핵심: scrollY: 0 옵션을 추가하여 상단 여백 버그를 원천 차단함!
             const opt = { 
                 margin: 0, 
                 filename: `보고서.pdf`, 
