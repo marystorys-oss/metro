@@ -41,8 +41,9 @@
         th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: center; }
         th { background: #f8f9fa; }
 
+        /* PDF 템플릿 CSS: 위쪽 패딩을 30px에서 20px로 살짝 줄임 */
         #pdf-template { 
-            display: none; width: 794px; height: 1122px; padding: 30px 40px; 
+            display: none; width: 794px; height: 1122px; padding: 20px 40px; 
             background: white; font-family: 'Malgun Gothic', sans-serif; box-sizing: border-box; 
         }
         #pdf-template h1 { text-align: center; color: #1e272e; margin: 0 0 15px 0; font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; }
@@ -60,7 +61,7 @@
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 현장관리 시스템 V18.1</span>
+    <span>(주)METRO R&S 현장관리 시스템 V18.2</span>
 </header>
 
 <div class="container">
@@ -195,7 +196,6 @@
         fields.forEach(id => { document.getElementById(id).value = ''; document.getElementById(id).classList.remove('filled'); });
     }
 
-    // 🌟 V18.1 핵심: 워터마크 함수가 어떤 사진인지(pId) 알 수 있게 수정
     function addWatermark(imgObj, data, pId) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -205,7 +205,10 @@
         canvas.width = w; canvas.height = h;
         ctx.drawImage(imgObj, 0, 0, w, h);
 
-        const boxWidth = w * 0.5; const boxHeight = h * 0.22; const x = 20; const y = h - boxHeight - 20;
+        // 🌟 V18.2: 박스 너비를 조금 줄이고, 항목 열을 22%로 좁혀서 타이트하게 만듦
+        const boxWidth = w * 0.45; // 박스 전체 너비를 45%로 약간 축소
+        const boxHeight = h * 0.22; 
+        const x = 20; const y = h - boxHeight - 20;
         
         ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
         ctx.fillRect(x, y, boxWidth, boxHeight);
@@ -217,8 +220,8 @@
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         
         const lineHeight = boxHeight / 5; const paddingX = fontSize;
+        const colDivider = boxWidth * 0.22; // 👈 항목 열 너비를 22%로 확 줄임 (예전엔 30%)
         
-        // 🌟 여기가 핵심! pId에 따라 내용 뒤에 꼬리표를 붙임
         let descSuffix = "";
         if (pId === 'p1') descSuffix = " - [전]";
         else if (pId === 'p2') descSuffix = " - [후]";
@@ -227,7 +230,7 @@
         const values = [
             data.site || "",
             (data.dong && data.ho) ? `${data.dong}동 ${data.ho}호` : "",
-            (data.desc || "") + descSuffix, // 👈 내용 뒤에 꼬리표 추가
+            (data.desc || "") + descSuffix, 
             data.work || "",
             data.date || ""
         ];
@@ -235,9 +238,11 @@
         for(let i=0; i<5; i++) {
             let currentY = y + (lineHeight * i) + (lineHeight / 2);
             ctx.fillText(labels[i], x + paddingX, currentY);
-            ctx.beginPath(); ctx.moveTo(x + boxWidth*0.3, y + (lineHeight * i)); ctx.lineTo(x + boxWidth*0.3, y + (lineHeight * (i+1))); ctx.stroke();
+            // 항목 구분 세로선 그리기 (좁아진 간격 적용)
+            ctx.beginPath(); ctx.moveTo(x + colDivider, y + (lineHeight * i)); ctx.lineTo(x + colDivider, y + (lineHeight * (i+1))); ctx.stroke();
             if(i < 4) { ctx.beginPath(); ctx.moveTo(x, y + (lineHeight * (i+1))); ctx.lineTo(x + boxWidth, y + (lineHeight * (i+1))); ctx.stroke(); }
-            ctx.fillText(values[i], x + boxWidth*0.3 + paddingX, currentY);
+            // 내용 텍스트 그리기
+            ctx.fillText(values[i], x + colDivider + paddingX, currentY);
         }
         
         return canvas.toDataURL('image/jpeg', 0.9);
@@ -253,7 +258,6 @@
                     let finalSrc = "";
                     if (pId === 'p1' || pId === 'p2') {
                         const currentData = getCurrentData();
-                        // 🌟 addWatermark 함수에 어떤 사진인지(pId) 알려줌
                         finalSrc = addWatermark(imgObj, currentData, pId);
                     } else {
                         const canvas = document.createElement('canvas');
@@ -350,11 +354,12 @@
             const element = document.getElementById('pdf-template');
             element.style.display = 'block'; 
 
+            // 🌟 V18.2 핵심: scrollY: 0 옵션을 추가하여 상단 여백 버그를 원천 차단함!
             const opt = { 
                 margin: 0, 
                 filename: `보고서.pdf`, 
                 image: { type: 'jpeg', quality: 0.95 }, 
-                html2canvas: { scale: 2, useCORS: true, windowWidth: 794 },
+                html2canvas: { scale: 2, useCORS: true, windowWidth: 794, scrollY: 0 }, 
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
             };
             
@@ -426,4 +431,3 @@
 </script>
 </body>
 </html>
-
