@@ -9,9 +9,8 @@
         :root { --primary: #1e272e; --accent: #3498db; --success: #27ae60; --pdf: #e74c3c; --highlight: #e8f6f3; --share: #9b59b6; }
         body { font-family: 'Pretendard', sans-serif; margin: 0; background: #f0f2f5; font-size: 14px; color: #333; padding-bottom: 50px; }
         
-        /* 🌟 V18.6: 헤더 아이콘 크기 축소 및 간격 최적화 */
         header { background: var(--primary); color: white; padding: 15px 40px 15px 15px; font-weight: bold; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        header span { font-size: 15px; } /* 폰에서 제목이 너무 꽉 차지 않게 살짝 줄임 */
+        header span { font-size: 15px; } 
         .setting-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 20px; cursor: pointer; transition: 0.2s; padding: 5px; opacity: 0.8; }
         .setting-icon:active { opacity: 0.4; }
         
@@ -42,14 +41,13 @@
         
         #search-box { width: 100%; border: 2px solid var(--accent); margin-bottom: 10px; padding: 10px; border-radius: 6px; }
         
-        /* 🌟 V18.6: 가로 스크롤 방지 및 모바일 표 최적화 */
         .table-wrapper { overflow-x: hidden; border-radius: 6px; border: 1px solid #eee; }
-        table { width: 100%; border-collapse: collapse; background: white; font-size: 12px; table-layout: fixed; } /* 폰트 줄이고 고정 레이아웃 */
-        th, td { border-bottom: 1px solid #eee; padding: 8px 4px; text-align: center; word-break: break-word; } /* 좌우 여백 줄이고 줄바꿈 허용 */
-        th:nth-child(1) { width: 12%; } /* No 열 넓이 */
-        th:nth-child(2) { width: 43%; } /* 현장/동/호 열 넓이 */
-        th:nth-child(3) { width: 25%; } /* 공종/유형 열 넓이 */
-        th:nth-child(4) { width: 20%; } /* 관리(삭제버튼) 열 넓이 */
+        table { width: 100%; border-collapse: collapse; background: white; font-size: 12px; table-layout: fixed; } 
+        th, td { border-bottom: 1px solid #eee; padding: 8px 4px; text-align: center; word-break: break-word; } 
+        th:nth-child(1) { width: 12%; } 
+        th:nth-child(2) { width: 43%; } 
+        th:nth-child(3) { width: 25%; } 
+        th:nth-child(4) { width: 20%; } 
         th { background: #f8f9fa; font-weight: bold; }
 
         #pdf-template { 
@@ -71,7 +69,7 @@
 
 <header>
     <img src="logo.png" alt="로고" style="height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-    <span>(주)METRO R&S 현장관리 시스템 V18.6</span>
+    <span>(주)METRO R&S 현장관리 시스템 V18.7</span>
     <span class="setting-icon" onclick="toggleConfig()" title="설정 열기/닫기">⚙️</span>
 </header>
 
@@ -385,30 +383,32 @@
                 }
             }
 
-            btn.innerText = "⏳ 2/2: 발송 중 (약 5~10초)...";
+            // 🌟 수정: 불필요한 초 단위 텍스트 제거
+            btn.innerText = "⏳ 2/2: 발송 중...";
             btn.style.background = "#e67e22";
 
             const payload = { record: pendingData, pdfBase64: base64Data, certBase64: certBase64Data, certName: certFileName, email: email };
             const response = await fetch(MY_GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
             const result = await response.json();
 
+            // 🌟 수정: 메시지들을 요청하신 대로 가장 심플하게 변경했습니다.
             if(result.result === 'success') {
-                alert(`✅ 완료!\n1. 구글 시트에 기록되었습니다.\n2. [${email}]로 보고서가 발송되었습니다.`);
+                alert(`✅ 기록 완료, 보고서 발송 완료!`);
                 const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho);
                 if(!exists) savedList.push(pendingData);
                 updateTable();
                 clearForm();    
             } else if (result.result === 'half_success') {
-                alert(`⚠️ 이메일 발송 한도 초과 (기록은 성공!)\n\n구글 계정의 오늘 이메일 발송 한도가 소진되어 메일은 가지 않았지만, 데이터는 [구글 시트]에 안전하게 기록되었습니다!`);
+                alert(`⚠️ 기록은 완료 / 이메일은 담당자와 상의 하세요.`);
                 const exists = savedList.find(item => item.dong === pendingData.dong && item.ho === pendingData.ho);
                 if(!exists) savedList.push(pendingData);
                 updateTable();
                 clearForm(); 
             } else { 
-                alert("⚠️ 서버 오류가 발생했습니다.\n" + result.message); 
+                alert("⚠️ 서버 오류가 발생했습니다. 담당자에게 문의해 주세요."); 
             }
         } catch(e) { 
-            alert("❌ 전송 실패!\n원인: " + e.message + "\n\n💡해결 팁: 구글 앱스 스크립트 '배포 관리'에서 액세스 권한이 [모든 사용자]로 되어 있는지 꼭 확인하세요!"); 
+            alert("❌ 전송 실패!\n인터넷 연결을 확인하거나 담당자에게 문의해 주세요."); 
         }
 
         btn.innerText = "최종 전송 (기록+이메일)";
